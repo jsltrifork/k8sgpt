@@ -14,10 +14,13 @@ limitations under the License.
 package kubernetes
 
 import (
+	"fmt"
+
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/metrics/pkg/client/clientset/versioned"
 	ctrl "sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -27,6 +30,10 @@ func (c *Client) GetConfig() *rest.Config {
 
 func (c *Client) GetClient() kubernetes.Interface {
 	return c.Client
+}
+
+func (c *Client) GetMetricsClient() versioned.Interface {
+	return c.MetricsClient
 }
 
 func (c *Client) GetCtrlClient() ctrl.Client {
@@ -54,6 +61,12 @@ func NewClient(kubecontext string, kubeconfig string) (*Client, error) {
 			return nil, err
 		}
 	}
+	fmt.Println("Creating metrics client ...")
+	metricsClient, err := versioned.NewForConfig(config)
+	if err != nil {
+		return nil, err
+	}
+
 	clientSet, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, err
@@ -74,5 +87,6 @@ func NewClient(kubecontext string, kubeconfig string) (*Client, error) {
 		CtrlClient:    ctrlClient,
 		Config:        config,
 		ServerVersion: serverVersion,
+		MetricsClient: metricsClient,
 	}, nil
 }

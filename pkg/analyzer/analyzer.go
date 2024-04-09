@@ -32,7 +32,8 @@ var (
 )
 
 var coreAnalyzerMap = map[string]common.IAnalyzer{
-	"Pod": PodAnalyzer{}}
+	"Pod": PodAnalyzer{},
+}
 
 var additionalAnalyzerMap = map[string]common.IAnalyzer{
 	"HorizontalPodAutoScaler": HpaAnalyzer{},
