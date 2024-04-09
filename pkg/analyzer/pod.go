@@ -45,7 +45,6 @@ func (PodAnalyzer) Analyze(a common.Analyzer) ([]common.Result, error) {
 			Pod:            pod,
 			FailureDetails: failures,
 		}
-		AnalyzerErrorsMetric.WithLabelValues(kind, pod.Name, pod.Namespace).Set(float64(len(failures)))
 	}
 
 	for key, value := range preAnalysis {
@@ -53,6 +52,7 @@ func (PodAnalyzer) Analyze(a common.Analyzer) ([]common.Result, error) {
 			Kind:  kind,
 			Name:  key,
 			Error: value.FailureDetails,
+			Pod:   value.Pod,
 		}
 
 		parent, _ := util.GetParent(a.Client, value.Pod.ObjectMeta)

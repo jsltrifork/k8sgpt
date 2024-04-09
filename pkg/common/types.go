@@ -72,6 +72,7 @@ type Result struct {
 	Error        []Failure `json:"error"`
 	Details      string    `json:"details"`
 	ParentObject string    `json:"parentObject"`
+	Pod          v1.Pod    `json:"pod"`
 }
 
 type Failure struct {
