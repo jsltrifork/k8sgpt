@@ -41,6 +41,10 @@ func (PodAnalyzer) Analyze(a common.Analyzer) ([]common.Result, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	// Get all node metrics
+	allNodeMetrics, err := a.Client.GetMetricsClient().MetricsV1beta1().NodeMetricses().List(a.Context, metav1.ListOptions{})
+
 	var preAnalysis = map[string]common.PreAnalysis{}
 
 	for _, pod := range list.Items {
@@ -69,12 +73,27 @@ func (PodAnalyzer) Analyze(a common.Analyzer) ([]common.Result, error) {
 			}
 		}
 
+		// Find the node metrics for this pod
+		nodeMetrics := common.Metrics{}
+		nodeName := value.Pod.Spec.NodeName
+		for _, nodeMetric := range allNodeMetrics.Items {
+			if nodeMetric.Name == nodeName {
+				nodeMetrics = common.Metrics{
+					CPU:    nodeMetric.Usage.Cpu().AsApproximateFloat64(),
+					Memory: nodeMetric.Usage.Memory().AsApproximateFloat64(),
+					Name:   nodeName,
+				}
+				break
+			}
+		}
+
 		var currentAnalysis = common.Result{
-			Kind:    kind,
-			Name:    key,
-			Error:   value.FailureDetails,
-			Pod:     value.Pod,
-			Metrics: metrics,
+			Kind:        kind,
+			Name:        key,
+			Error:       value.FailureDetails,
+			Pod:         value.Pod,
+			Metrics:     metrics,
+			NodeMetrics: nodeMetrics,
 		}
 
 		parent, _ := util.GetParent(a.Client, value.Pod.ObjectMeta)

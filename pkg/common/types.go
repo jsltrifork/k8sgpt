@@ -80,6 +80,7 @@ type Result struct {
 	ParentObject string    `json:"parentObject"`
 	Pod          v1.Pod    `json:"pod"`
 	Metrics      []Metrics `json:"metrics"`
+	NodeMetrics  Metrics   `json:"nodeMetrics"`
 }
 
 type Failure struct {
