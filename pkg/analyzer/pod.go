@@ -41,83 +41,11 @@ func (PodAnalyzer) Analyze(a common.Analyzer) ([]common.Result, error) {
 
 	for _, pod := range list.Items {
 		var failures []common.Failure
-		// Check for pending pods
-		if pod.Status.Phase == "Pending" {
-
-			// Check through container status to check for crashes
-			for _, containerStatus := range pod.Status.Conditions {
-				if containerStatus.Type == "PodScheduled" && containerStatus.Reason == "Unschedulable" {
-					if containerStatus.Message != "" {
-						failures = append(failures, common.Failure{
-							Text:      containerStatus.Message,
-							Sensitive: []common.Sensitive{},
-						})
-					}
-				}
-			}
+		preAnalysis[fmt.Sprintf("%s/%s", pod.Namespace, pod.Name)] = common.PreAnalysis{
+			Pod:            pod,
+			FailureDetails: failures,
 		}
-
-		// Check through container status to check for crashes or unready
-		for _, containerStatus := range pod.Status.ContainerStatuses {
-
-			if containerStatus.State.Waiting != nil {
-
-				if isErrorReason(containerStatus.State.Waiting.Reason) && containerStatus.State.Waiting.Message != "" {
-					failures = append(failures, common.Failure{
-						Text:      containerStatus.State.Waiting.Message,
-						Sensitive: []common.Sensitive{},
-					})
-				}
-
-				// This represents a container that is still being created or blocked due to conditions such as OOMKilled
-				if containerStatus.State.Waiting.Reason == "ContainerCreating" && pod.Status.Phase == "Pending" {
-
-					// parse the event log and append details
-					evt, err := FetchLatestEvent(a.Context, a.Client, pod.Namespace, pod.Name)
-					if err != nil || evt == nil {
-						continue
-					}
-					if isEvtErrorReason(evt.Reason) && evt.Message != "" {
-						failures = append(failures, common.Failure{
-							Text:      evt.Message,
-							Sensitive: []common.Sensitive{},
-						})
-					}
-				}
-
-				// This represents container that is in CrashLoopBackOff state due to conditions such as OOMKilled
-				if containerStatus.State.Waiting.Reason == "CrashLoopBackOff" {
-					failures = append(failures, common.Failure{
-						Text:      fmt.Sprintf("the last termination reason is %s container=%s pod=%s", containerStatus.LastTerminationState.Terminated.Reason, containerStatus.Name, pod.Name),
-						Sensitive: []common.Sensitive{},
-					})
-				}
-			} else {
-				// when pod is Running but its ReadinessProbe fails
-				if !containerStatus.Ready && pod.Status.Phase == "Running" {
-					// parse the event log and append details
-					evt, err := FetchLatestEvent(a.Context, a.Client, pod.Namespace, pod.Name)
-					if err != nil || evt == nil {
-						continue
-					}
-					if evt.Reason == "Unhealthy" && evt.Message != "" {
-						failures = append(failures, common.Failure{
-							Text:      evt.Message,
-							Sensitive: []common.Sensitive{},
-						})
-
-					}
-
-				}
-			}
-		}
-		if len(failures) > 0 {
-			preAnalysis[fmt.Sprintf("%s/%s", pod.Namespace, pod.Name)] = common.PreAnalysis{
-				Pod:            pod,
-				FailureDetails: failures,
-			}
-			AnalyzerErrorsMetric.WithLabelValues(kind, pod.Name, pod.Namespace).Set(float64(len(failures)))
-		}
+		AnalyzerErrorsMetric.WithLabelValues(kind, pod.Name, pod.Namespace).Set(float64(len(failures)))
 	}
 
 	for key, value := range preAnalysis {
