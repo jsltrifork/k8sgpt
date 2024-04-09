@@ -306,7 +306,9 @@ func (a *Analysis) GetAIResults(output string, anonymize bool, query string) err
 		//	promptTemplate = prompt
 		//}
 		var podInfo = fmt.Sprintf("%#v", analysis.Pod)
+		var metrics = fmt.Sprintf("%#v", analysis.Metrics)
 		sb.WriteString(podInfo)
+		sb.WriteString(metrics)
 		sb.WriteString("---")
 	}
 

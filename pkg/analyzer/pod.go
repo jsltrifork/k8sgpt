@@ -38,17 +38,6 @@ func (PodAnalyzer) Analyze(a common.Analyzer) ([]common.Result, error) {
 	// Get all pod metrics
 	podMetrics, err := a.Client.GetMetricsClient().MetricsV1beta1().PodMetricses(a.Namespace).List(a.Context, metav1.ListOptions{})
 
-	// print metrics for all pods in the namespace
-	for _, podMetric := range podMetrics.Items {
-		fmt.Printf("Pod: %s\n", podMetric.Name)
-		for _, container := range podMetric.Containers {
-			fmt.Printf("Container: %s\n", container.Name)
-			fmt.Printf("CPU: %f\n", container.Usage.Cpu().AsApproximateFloat64())
-			fmt.Printf("Memory: %f\n", container.Usage.Memory().AsApproximateFloat64())
-		}
-		fmt.Println("------")
-	}
-
 	if err != nil {
 		return nil, err
 	}
@@ -63,11 +52,29 @@ func (PodAnalyzer) Analyze(a common.Analyzer) ([]common.Result, error) {
 	}
 
 	for key, value := range preAnalysis {
+		// Get metrics for this pod
+		var metrics = []common.Metrics{}
+
+		for _, podMetric := range podMetrics.Items {
+			if podMetric.Name == value.Pod.Name {
+				for _, container := range podMetric.Containers {
+					metrics = append(metrics, common.Metrics{
+						CPU:    container.Usage.Cpu().AsApproximateFloat64(),
+						Name:   container.Name,
+						Memory: container.Usage.Memory().AsApproximateFloat64(),
+					})
+				}
+
+				break
+			}
+		}
+
 		var currentAnalysis = common.Result{
-			Kind:  kind,
-			Name:  key,
-			Error: value.FailureDetails,
-			Pod:   value.Pod,
+			Kind:    kind,
+			Name:    key,
+			Error:   value.FailureDetails,
+			Pod:     value.Pod,
+			Metrics: metrics,
 		}
 
 		parent, _ := util.GetParent(a.Client, value.Pod.ObjectMeta)

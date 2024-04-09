@@ -66,6 +66,12 @@ type PreAnalysis struct {
 	TrivyConfigAuditReport   trivy.ConfigAuditReport
 }
 
+type Metrics struct {
+	CPU    float64
+	Memory float64
+	Name   string
+}
+
 type Result struct {
 	Kind         string    `json:"kind"`
 	Name         string    `json:"name"`
@@ -73,6 +79,7 @@ type Result struct {
 	Details      string    `json:"details"`
 	ParentObject string    `json:"parentObject"`
 	Pod          v1.Pod    `json:"pod"`
+	Metrics      []Metrics `json:"metrics"`
 }
 
 type Failure struct {
