@@ -29,7 +29,8 @@ func (h *handler) Analyze(ctx context.Context, i *schemav1.AnalyzeRequest) (
 		i.Explain,
 		int(i.MaxConcurrency),
 		false, // Kubernetes Doc disabled in server mode
-		false, // Interactive mode disabled in server mode
+		false,
+		"", // Interactive mode disabled in server mode
 	)
 	config.Context = ctx // Replace context for correct timeouts.
 	if err != nil {
@@ -40,7 +41,7 @@ func (h *handler) Analyze(ctx context.Context, i *schemav1.AnalyzeRequest) (
 	config.RunAnalysis()
 
 	if i.Explain {
-		err := config.GetAIResults(i.Output, i.Anonymize)
+		err := config.GetAIResults(i.Output, i.Anonymize, "")
 		if err != nil {
 			return &schemav1.AnalyzeResponse{}, err
 		}

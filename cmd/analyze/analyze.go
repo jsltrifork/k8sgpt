@@ -38,6 +38,7 @@ var (
 	withDoc         bool
 	interactiveMode bool
 	customAnalysis  bool
+	query           string
 )
 
 // AnalyzeCmd represents the problems command
@@ -59,6 +60,7 @@ var AnalyzeCmd = &cobra.Command{
 			maxConcurrency,
 			withDoc,
 			interactiveMode,
+			query,
 		)
 
 		if err != nil {
@@ -73,7 +75,8 @@ var AnalyzeCmd = &cobra.Command{
 		config.RunAnalysis()
 
 		if explain {
-			if err := config.GetAIResults(output, anonymize); err != nil {
+			fmt.Print(query)
+			if err := config.GetAIResults(output, anonymize, query); err != nil {
 				color.Red("Error: %v", err)
 				os.Exit(1)
 			}
@@ -138,5 +141,6 @@ func init() {
 	AnalyzeCmd.Flags().BoolVarP(&interactiveMode, "interactive", "i", false, "Enable interactive mode that allows further conversation with LLM about the problem. Works only with --explain flag")
 	// custom analysis flag
 	AnalyzeCmd.Flags().BoolVarP(&customAnalysis, "custom-analysis", "z", false, "Enable custom analyzers")
-
+	// custom query
+	AnalyzeCmd.Flags().StringVarP(&query, "query", "q", "", "Default query to your cluster")
 }

@@ -49,6 +49,7 @@ type Analysis struct {
 	MaxConcurrency     int
 	AnalysisAIProvider string // The name of the AI Provider used for this analysis
 	WithDoc            bool
+	Query              string
 }
 
 type (
@@ -79,6 +80,7 @@ func NewAnalysis(
 	maxConcurrency int,
 	withDoc bool,
 	interactiveMode bool,
+	query string,
 ) (*Analysis, error) {
 	// Get kubernetes client from viper.
 	kubecontext := viper.GetString("kubecontext")
@@ -108,6 +110,7 @@ func NewAnalysis(
 		Explain:        explain,
 		MaxConcurrency: maxConcurrency,
 		WithDoc:        withDoc,
+		Query:          query,
 	}
 	if !explain {
 		// Return early if AI use was not requested.
@@ -281,7 +284,8 @@ func (a *Analysis) RunAnalysis() {
 	wg.Wait()
 }
 
-func (a *Analysis) GetAIResults(output string, anonymize bool) error {
+func (a *Analysis) GetAIResults(output string, anonymize bool, query string) error {
+	fmt.Print(query)
 	if len(a.Results) == 0 {
 		return nil
 	}
@@ -291,53 +295,44 @@ func (a *Analysis) GetAIResults(output string, anonymize bool) error {
 		bar = progressbar.Default(int64(len(a.Results)))
 	}
 
-	for index, analysis := range a.Results {
-		var texts []string
+	var sb strings.Builder
 
-		for _, failure := range analysis.Error {
-			if anonymize {
-				for _, s := range failure.Sensitive {
-					failure.Text = util.ReplaceIfMatch(failure.Text, s.Unmasked, s.Masked)
-				}
-			}
-			texts = append(texts, failure.Text)
-		}
+	promptTemplate := ai.PromptMap["default"] + query
+	for _, analysis := range a.Results {
 
-		promptTemplate := ai.PromptMap["default"]
 		// If the resource `Kind` comes from an "integration plugin",
 		// maybe a customized prompt template will be involved.
-		if prompt, ok := ai.PromptMap[analysis.Kind]; ok {
-			promptTemplate = prompt
-		}
-		result, err := a.getAIResultForSanitizedFailures(texts, promptTemplate)
-		if err != nil {
-			// FIXME: can we avoid checking if output is json multiple times?
-			//   maybe implement the progress bar better?
-			if output != "json" {
-				_ = bar.Exit()
-			}
-
-			// Check for exhaustion.
-			if strings.Contains(err.Error(), "status code: 429") {
-				return fmt.Errorf("exhausted API quota for AI provider %s: %v", a.AIClient.GetName(), err)
-			}
-			return fmt.Errorf("failed while calling AI provider %s: %v", a.AIClient.GetName(), err)
-		}
-
-		if anonymize {
-			for _, failure := range analysis.Error {
-				for _, s := range failure.Sensitive {
-					result = strings.ReplaceAll(result, s.Masked, s.Unmasked)
-				}
-			}
-		}
-
-		analysis.Details = result
-		if output != "json" {
-			_ = bar.Add(1)
-		}
-		a.Results[index] = analysis
+		//if prompt, ok := ai.PromptMap[analysis.Kind]; ok {
+		//	promptTemplate = prompt
+		//}
+		var podInfo = fmt.Sprintf("%#v", analysis.Pod)
+		sb.WriteString(podInfo)
+		sb.WriteString("---")
 	}
+
+	var podInfoList []string
+	podInfoList = append(podInfoList, sb.String())
+	result, err := a.getAIResultForSanitizedFailures(podInfoList, promptTemplate)
+	//fmt.Print(result)
+	if err != nil {
+		// FIXME: can we avoid checking if output is json multiple times?
+		//   maybe implement the progress bar better?
+		if output != "json" {
+			_ = bar.Exit()
+		}
+
+		// Check for exhaustion.
+		if strings.Contains(err.Error(), "status code: 429") {
+			return fmt.Errorf("exhausted API quota for AI provider %s: %v", a.AIClient.GetName(), err)
+		}
+		return fmt.Errorf("failed while calling AI provider %s: %v", a.AIClient.GetName(), err)
+	}
+
+	a.Results[0].Details = result
+	if output != "json" {
+		_ = bar.Add(1)
+	}
+
 	return nil
 }
 
