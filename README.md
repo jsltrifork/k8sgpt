@@ -15,7 +15,7 @@
 [![codecov](https://codecov.io/github/k8sgpt-ai/k8sgpt/graph/badge.svg?token=ZLR7NG8URE)](https://codecov.io/github/k8sgpt-ai/k8sgpt)
 ![GitHub last commit (branch)](https://img.shields.io/github/last-commit/k8sgpt-ai/k8sgpt/main)  
 
-`k8sgpt` is a tool for scanning your Kubernetes clusters, diagnosing, and triaging issues in simple English.
+`k8sgpt` is TEST a tool for scanning your Kubernetes clusters, diagnosing, and triaging issues in simple English.
 
 It has SRE experience codified into its analyzers and helps to pull out the most relevant information to enrich it with AI.
 
