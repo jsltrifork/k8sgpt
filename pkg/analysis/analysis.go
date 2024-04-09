@@ -285,7 +285,6 @@ func (a *Analysis) RunAnalysis() {
 }
 
 func (a *Analysis) GetAIResults(output string, anonymize bool, query string) error {
-	fmt.Print(query)
 	if len(a.Results) == 0 {
 		return nil
 	}
@@ -295,9 +294,8 @@ func (a *Analysis) GetAIResults(output string, anonymize bool, query string) err
 		bar = progressbar.Default(int64(len(a.Results)))
 	}
 
-	var sb strings.Builder
-
 	promptTemplate := ai.PromptMap["default"] + query
+	var podInfoList []string
 	for _, analysis := range a.Results {
 
 		// If the resource `Kind` comes from an "integration plugin",
@@ -305,15 +303,19 @@ func (a *Analysis) GetAIResults(output string, anonymize bool, query string) err
 		//if prompt, ok := ai.PromptMap[analysis.Kind]; ok {
 		//	promptTemplate = prompt
 		//}
-		var podInfo = fmt.Sprintf("%#v", analysis.Pod)
-		var metrics = fmt.Sprintf("%#v", analysis.Metrics)
-		sb.WriteString(podInfo)
-		sb.WriteString(metrics)
-		sb.WriteString("---")
+		podInfo := common.PodInfo{
+			Name:                  analysis.Pod.Name,
+			NodeName:              analysis.Pod.Spec.NodeName,
+			ContainerStatuses:     analysis.Pod.Status.ContainerStatuses,
+			ResourceClaimStatuses: analysis.Pod.Status.ResourceClaimStatuses,
+			StatusPhase:           fmt.Sprintf("%#v", analysis.Pod.Status.Phase),
+			StatusReason:          analysis.Pod.Status.Reason,
+			Metrics:               fmt.Sprintf("%#v", analysis.Metrics),
+		}
+
+		podInfoList = append(podInfoList, fmt.Sprintf("%#v", podInfo))
 	}
 
-	var podInfoList []string
-	podInfoList = append(podInfoList, sb.String())
 	result, err := a.getAIResultForSanitizedFailures(podInfoList, promptTemplate)
 	//fmt.Print(result)
 	if err != nil {

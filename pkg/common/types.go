@@ -92,3 +92,13 @@ type Sensitive struct {
 	Unmasked string
 	Masked   string
 }
+
+type PodInfo struct {
+	Name                  string
+	NodeName              string
+	ContainerStatuses     []v1.ContainerStatus
+	ResourceClaimStatuses []v1.PodResourceClaimStatus
+	StatusPhase           string
+	StatusReason          string
+	Metrics               string
+}

@@ -75,7 +75,6 @@ var AnalyzeCmd = &cobra.Command{
 		config.RunAnalysis()
 
 		if explain {
-			fmt.Print(query)
 			if err := config.GetAIResults(output, anonymize, query); err != nil {
 				color.Red("Error: %v", err)
 				os.Exit(1)
