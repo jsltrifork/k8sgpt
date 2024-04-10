@@ -97,6 +97,7 @@ type Sensitive struct {
 type PodInfo struct {
 	Name                  string
 	NodeName              string
+	PodConditions         []v1.PodCondition
 	ContainerStatuses     []v1.ContainerStatus
 	ResourceClaimStatuses []v1.PodResourceClaimStatus
 	StatusPhase           string

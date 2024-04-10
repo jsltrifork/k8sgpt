@@ -306,6 +306,7 @@ func (a *Analysis) GetAIResults(output string, anonymize bool, query string) err
 		podInfo := common.PodInfo{
 			Name:                  analysis.Pod.Name,
 			NodeName:              analysis.Pod.Spec.NodeName,
+			PodConditions:         analysis.Pod.Status.Conditions,
 			ContainerStatuses:     analysis.Pod.Status.ContainerStatuses,
 			ResourceClaimStatuses: analysis.Pod.Status.ResourceClaimStatuses,
 			StatusPhase:           fmt.Sprintf("%#v", analysis.Pod.Status.Phase),
@@ -315,6 +316,8 @@ func (a *Analysis) GetAIResults(output string, anonymize bool, query string) err
 
 		podInfoList = append(podInfoList, fmt.Sprintf("%#v", podInfo))
 	}
+
+	podInfoList = append(podInfoList, fmt.Sprintf("%#v", a.Results[0].NodeMetrics))
 
 	result, err := a.getAIResultForSanitizedFailures(podInfoList, promptTemplate)
 	//fmt.Print(result)
@@ -333,6 +336,7 @@ func (a *Analysis) GetAIResults(output string, anonymize bool, query string) err
 	}
 
 	a.Results[0].Details = result
+	a.Results = a.Results[:1]
 	if output != "json" {
 		_ = bar.Add(1)
 	}
